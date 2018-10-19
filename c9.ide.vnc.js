@@ -30,8 +30,8 @@ define(function(require, exports, module) {
         function VNCViewer(){
             var plugin = new Editor("Ajax.org", main.consumes, []);
 
-            var container, viewer, hostfield, passwordfield, btnConnect, btnCAD;
-            var rfb, host, connected = false, password;
+            var container, viewer, hostfield, passwordfield, message, btnConnect, btnCAD;
+            var rfb, host, connected = false, desktopname;
 
             plugin.on("draw", function(e) {
                 container = e.htmlNode;
@@ -49,18 +49,20 @@ define(function(require, exports, module) {
                 var doc = e.doc;
                 var session = doc.getSession();
 
-                doc.tab.on("setPath", setTitle, session);
+                doc.tab.on("setPath", updateTitle, session);
 
-                function setTitle(e) {
-                    var desktopname = e.detail.name;
-
+                function updateTitle() {
                     // Caption is the filename
                     doc.title = desktopname;
 
                     // Tooltip is the full path
-                    doc.tooltip = host + " - " + desktopname;
+                    if (connected)
+                        doc.tooltip = host + " - " + desktopname;
+                    else
+                        doc.tooltip = desktopname + " (disconnected)";
                 }
-                setTitle({detail: {name: "VNC Viewer"}});
+                desktopname = "VNC Viewer";
+                updateTitle();
 
                 function setTheme(e) {
                     var tab = doc.tab;
@@ -77,35 +79,45 @@ define(function(require, exports, module) {
                 setTheme({ theme: settings.get("user/general/@skin") });
 
                 function connectedToServer(e) {
-                    console.log("Connected to " + host);
+                    message.innerHTML = "Connected to " + host;
                     btnConnect.innerHTML = "Disconnect";
                     connected = true;
+                    updateTitle();
                 }
-        
+
                 // This function is called when we are disconnected
                 function disconnectedFromServer(e) {
                     if (e.detail.clean) {
-                        console.log("Disconnected");
+                        message.innerHTML = "Disconnected";
                     } else {
-                        console.log("Something went wrong, connection is closed");
+                        message.innerHTML = "Something went wrong, connection unexpectedly closed";
                     }
                     btnConnect.innerHTML = "Connect";
                     connected = false;
+                    desktopname = "VNC Viewer";
+                    updateTitle();
+                    rfb = null;
                 }
 
                 function initiateConnection() {
                     if (rfb != null) return;
 
                     host = hostfield.value;
+                    message.innerHTML = "Initiating connection to " + host + "...";
+                    btnConnect.innerHTML = "Connecting...";
                     rfb = new RFB(viewer, host, { credentials: { password: passwordfield.value } });
                     rfb.addEventListener("connect",  connectedToServer);
                     rfb.addEventListener("disconnect", disconnectedFromServer);
-                    rfb.addEventListener("desktopname", setTitle);
+                    rfb.addEventListener("desktopname", function (e) {
+                        desktopname = e.detail.name;
+                        updateTitle();
+                    });
                 }
 
                 viewer = container.querySelector(".vnc-viewer");
                 hostfield = container.querySelector(".vnc-viewer-host");
                 passwordfield = container.querySelector(".vnc-viewer-password");
+                message = container.querySelector(".vnc-viewer-message");
                 btnConnect = container.querySelector(".vnc-viewer-connectbtn");
                 btnCAD = container.querySelector(".vnc-viewer-ctrlaltdel");
 
@@ -114,7 +126,6 @@ define(function(require, exports, module) {
                 btnConnect.addEventListener("click", function() {
                     if (connected) {
                         rfb.disconnect();
-                        rfb = null;
                     } else {
                         initiateConnection();
                     }
@@ -155,7 +166,7 @@ define(function(require, exports, module) {
                             focus: true,
                             pane: tabManager.getPanes()[0],
                             editorType: "vnc"
-                    }, function(err, tab) {console.log(err)});
+                    }, function(err, tab) {if(err) console.log(err)});
                 }
             }, handle);
 
