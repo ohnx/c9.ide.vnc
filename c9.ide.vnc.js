@@ -30,8 +30,8 @@ define(function(require, exports, module) {
         function VNCViewer(){
             var plugin = new Editor("Ajax.org", main.consumes, []);
 
-            var container;
-            var rfb, host = "ws://c9.ohnx.cf:5901/";
+            var container, viewer, hostfield, passwordfield, btnConnect, btnCAD;
+            var rfb, host, connected = false, password;
 
             plugin.on("draw", function(e) {
                 container = e.htmlNode;
@@ -78,6 +78,8 @@ define(function(require, exports, module) {
 
                 function connectedToServer(e) {
                     console.log("Connected to " + host);
+                    btnConnect.innerHTML = "Disconnect";
+                    connected = true;
                 }
         
                 // This function is called when we are disconnected
@@ -87,12 +89,40 @@ define(function(require, exports, module) {
                     } else {
                         console.log("Something went wrong, connection is closed");
                     }
+                    btnConnect.innerHTML = "Connect";
+                    connected = false;
                 }
 
-                rfb = new RFB(container.querySelector(".vnc-viewer"), host, { credentials: { password: "" } });
-                rfb.addEventListener("connect",  connectedToServer);
-                rfb.addEventListener("disconnect", disconnectedFromServer);
-                rfb.addEventListener("desktopname", setTitle);
+                function initiateConnection() {
+                    if (rfb != null) return;
+
+                    host = hostfield.value;
+                    rfb = new RFB(viewer, host, { credentials: { password: passwordfield.value } });
+                    rfb.addEventListener("connect",  connectedToServer);
+                    rfb.addEventListener("disconnect", disconnectedFromServer);
+                    rfb.addEventListener("desktopname", setTitle);
+                }
+
+                viewer = container.querySelector(".vnc-viewer");
+                hostfield = container.querySelector(".vnc-viewer-host");
+                passwordfield = container.querySelector(".vnc-viewer-password");
+                btnConnect = container.querySelector(".vnc-viewer-connectbtn");
+                btnCAD = container.querySelector(".vnc-viewer-ctrlaltdel");
+
+                initiateConnection();
+
+                btnConnect.addEventListener("click", function() {
+                    if (connected) {
+                        rfb.disconnect();
+                        rfb = null;
+                    } else {
+                        initiateConnection();
+                    }
+                });
+
+                btnCAD.addEventListener("click", function() {
+                    rfb.sendCtrlAltDel();
+                });
             });
             plugin.on("documentActivate", function(e){
                 
@@ -104,9 +134,9 @@ define(function(require, exports, module) {
 
             });
 
-            /*plugin.freezePublicAPI({
+            plugin.freezePublicAPI({
 
-            });*/
+            });
 
             plugin.load(null, "");
 
