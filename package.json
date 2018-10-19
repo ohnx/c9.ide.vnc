@@ -1,0 +1,24 @@
+{
+  "name": "c9.ide.vnc",
+  "version": "1.0.0",
+  "description": "VNC viewer in cloud9",
+  "main": "c9.ide.vnc.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ohnx/c9.ide.vnc.git"
+  },
+  "plugins": {
+    "c9.ide.vnc": {
+      "packagePath": "plugins/c9.ide.vnc/c9.ide.vnc"
+    }
+  },
+  "author": "ohnx",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ohnx/c9.ide.vnc/issues"
+  },
+  "homepage": "https://github.com/ohnx/c9.ide.vnc#readme"
+}
