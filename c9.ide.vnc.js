@@ -30,7 +30,7 @@ define(function(require, exports, module) {
         function VNCViewer(){
             var plugin = new Editor("Ajax.org", main.consumes, []);
 
-            var container, viewer, hostfield, passwordfield, message, btnConnect, btnCAD;
+            var container, viewer, hostfield, passwordfield, resizefield, message, btnConnect, btnCAD, reconnectAttempts;
             var rfb, host, connected = false, desktopname;
 
             plugin.on("draw", function(e) {
@@ -79,10 +79,15 @@ define(function(require, exports, module) {
                 setTheme({ theme: settings.get("user/general/@skin") });
 
                 function connectedToServer(e) {
+                    if (reconnectAttempts) clearInterval(reconnectAttempts);
+                    reconnectAttempts = null;
                     message.innerHTML = "Connected to " + host;
                     btnConnect.innerHTML = "Disconnect";
                     connected = true;
                     updateTitle();
+
+                    rfb.scaleViewport = resizefield.value === 'scale';
+                    rfb.resizeSession = resizefield.value === 'remote';
                 }
 
                 // This function is called when we are disconnected
@@ -91,6 +96,7 @@ define(function(require, exports, module) {
                         message.innerHTML = "Disconnected";
                     } else {
                         message.innerHTML = "Something went wrong, connection unexpectedly closed";
+                        reconnectAttempts = setInterval(initiateConnection, 1000);
                     }
                     btnConnect.innerHTML = "Connect";
                     connected = false;
@@ -117,11 +123,19 @@ define(function(require, exports, module) {
                 viewer = container.querySelector(".vnc-viewer");
                 hostfield = container.querySelector(".vnc-viewer-host");
                 passwordfield = container.querySelector(".vnc-viewer-password");
+                resizefield = container.querySelector(".vnc-viewer-resize");
                 message = container.querySelector(".vnc-viewer-message");
                 btnConnect = container.querySelector(".vnc-viewer-connectbtn");
                 btnCAD = container.querySelector(".vnc-viewer-ctrlaltdel");
 
                 initiateConnection();
+
+                resizefield.addEventListener("change", function() {
+                    if (!connected || rfb == null) return;
+
+                    rfb.scaleViewport = resizefield.value === 'scale';
+                    rfb.resizeSession = resizefield.value === 'remote';
+                });
 
                 btnConnect.addEventListener("click", function() {
                     if (connected) {
@@ -135,19 +149,12 @@ define(function(require, exports, module) {
                     rfb.sendCtrlAltDel();
                 });
             });
-            plugin.on("documentActivate", function(e){
-                
-            });
-            plugin.on("documentUnload", function(e){
-                
-            });
-            plugin.on("resize", function(){
 
-            });
+            plugin.on("documentActivate", function(e){});
+            plugin.on("documentUnload", function(e){});
+            plugin.on("resize", function(){});
 
-            plugin.freezePublicAPI({
-
-            });
+            plugin.freezePublicAPI({});
 
             plugin.load(null, "");
 
@@ -173,6 +180,19 @@ define(function(require, exports, module) {
             menus.addItemByPath("Window/VNC Viewer", new ui.item({
                 command: "open_vnc"
             }), 102, handle);
+
+            menus.addItemToMenu(tabManager.getElement("mnuEditors"), 
+                new ui.item({
+                    caption: "New VNC Viewer",
+                    hotkey: "commands.open_vnc",
+                    onclick: function(e) {
+                        tabManager.open({
+                            focus: true,
+                            pane: this.parentNode.pane,
+                            editorType: "vnc"
+                        }, function() {});
+                    }
+                }), 200, handle);
         });
 
         register(null, {
