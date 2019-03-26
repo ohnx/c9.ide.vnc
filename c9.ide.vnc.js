@@ -96,7 +96,7 @@ define(function(require, exports, module) {
                         message.innerHTML = "Disconnected";
                     } else {
                         message.innerHTML = "Something went wrong, connection unexpectedly closed";
-                        reconnectAttempts = setInterval(initiateConnection, 1000);
+                        reconnectAttempts = setTimeout(initiateConnection, 1000);
                     }
                     btnConnect.innerHTML = "Connect";
                     connected = false;
