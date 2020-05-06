@@ -31,7 +31,7 @@ define(function(require, exports, module) {
             var plugin = new Editor("Ajax.org", main.consumes, []);
 
             var container, viewer, hostfield, passwordfield, resizefield, message, btnConnect, btnCAD, reconnectAttempts;
-            var rfb, host, connected = false, desktopname;
+            var rfb, host, connected = false, desktopname, consecutive_failures = 0;
 
             plugin.on("draw", function(e) {
                 container = e.htmlNode;
@@ -85,6 +85,7 @@ define(function(require, exports, module) {
                     btnConnect.innerHTML = "Disconnect";
                     connected = true;
                     updateTitle();
+                    consecutive_failures = 0;
 
                     rfb.scaleViewport = resizefield.value === 'scale';
                     rfb.resizeSession = resizefield.value === 'remote';
@@ -96,7 +97,9 @@ define(function(require, exports, module) {
                         message.innerHTML = "Disconnected";
                     } else {
                         message.innerHTML = "Something went wrong, connection unexpectedly closed";
-                        reconnectAttempts = setTimeout(initiateConnection, 1000);
+                        if (consecutive_failures < 3) {
+                            reconnectAttempts = setTimeout(initiateConnection, 1000);
+                        }
                     }
                     btnConnect.innerHTML = "Connect";
                     connected = false;
@@ -108,6 +111,7 @@ define(function(require, exports, module) {
                 function initiateConnection() {
                     if (rfb != null) return;
 
+                    consecutive_failures++;
                     host = hostfield.value;
                     message.innerHTML = "Initiating connection to " + host + "...";
                     btnConnect.innerHTML = "Connecting...";
